@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CodeGraph — dependency risk &amp; impact explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div id="db-banner" class="db-banner" hidden>
+  <span class="db-banner__dot"></span>
+  <span id="db-banner-text">Checking database connection…</span>
+</div>
+
+<div class="shell">
+
+  <aside class="rail">
+    <div class="rail__brand">
+      <span class="rail__mark">◈</span>
+      <div>
+        <div class="rail__title">CodeGraph</div>
+        <div class="rail__subtitle">dependency risk explorer</div>
+      </div>
+    </div>
+
+    <nav class="rail__nav" id="tab-nav">
+      <button class="rail__tab is-active" data-tab="explorer">
+        <span class="rail__tab-num">01</span> Explorer
+      </button>
+      <button class="rail__tab" data-tab="risk">
+        <span class="rail__tab-num">02</span> Risk Radar
+      </button>
+      <button class="rail__tab" data-tab="compare">
+        <span class="rail__tab-num">03</span> Compare
+      </button>
+      <button class="rail__tab" data-tab="developers">
+        <span class="rail__tab-num">04</span> Developers
+      </button>
+      <button class="rail__tab" data-tab="about">
+        <span class="rail__tab-num">05</span> Why a graph?
+      </button>
+    </nav>
+
+    <div class="rail__legend">
+      <div class="rail__legend-title">Reading the graph</div>
+      <div class="legend-row"><span class="legend-dot legend-dot--node"></span> package</div>
+      <div class="legend-row"><span class="legend-line"></span> depends on</div>
+    </div>
+  </aside>
+
+  <main class="stage">
+
+    <!-- EXPLORER -->
+    <section class="view is-active" id="view-explorer">
+      <header class="view__header">
+        <h1>Explorer</h1>
+        <p>Pick a package and trace what it pulls in — or what breaks if it changes.</p>
+      </header>
+
+      <div class="searchbar">
+        <input id="explorer-search" type="text" placeholder="Search packages, e.g. “torque” or “http client”…" autocomplete="off" />
+        <div id="explorer-suggestions" class="suggestions" hidden></div>
+      </div>
+
+      <div id="explorer-empty" class="empty-state">
+        <div class="empty-state__glyph">◇</div>
+        <p>Search for a package above to see its dependency graph, maintainers, and blast radius.</p>
+      </div>
+
+      <div id="explorer-content" class="explorer-content" hidden>
+        <div class="detail-card" id="explorer-detail"></div>
+
+        <div class="graph-card">
+          <div class="graph-card__controls">
+            <div class="segmented" id="direction-toggle">
+              <button class="segmented__opt is-active" data-direction="dependencies">Depends on</button>
+              <button class="segmented__opt" data-direction="dependents">Depended on by</button>
+            </div>
+            <label class="depth-control">
+              Hops
+              <input type="range" id="depth-slider" min="1" max="4" value="2" />
+              <span id="depth-value">2</span>
+            </label>
+          </div>
+          <div id="graph-canvas" class="graph-canvas"></div>
+          <div id="graph-empty" class="empty-state empty-state--inline" hidden>
+            <p>No packages found in that direction.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RISK RADAR -->
+    <section class="view" id="view-risk">
+      <header class="view__header">
+        <h1>Risk Radar</h1>
+        <p>Packages with a large blast radius and few maintainers — single points of failure in the ecosystem.</p>
+      </header>
+      <div id="risk-content"></div>
+    </section>
+
+    <!-- COMPARE -->
+    <section class="view" id="view-compare">
+      <header class="view__header">
+        <h1>Compare</h1>
+        <p>Find what two packages share, transitively, in their dependency trees.</p>
+      </header>
+      <div class="compare-inputs">
+        <input id="compare-a" type="text" placeholder="First package, e.g. torque-cli" autocomplete="off" />
+        <span class="compare-x">×</span>
+        <input id="compare-b" type="text" placeholder="Second package, e.g. wick-migrate" autocomplete="off" />
+        <button id="compare-run" class="btn">Compare</button>
+      </div>
+      <div id="compare-content"></div>
+    </section>
+
+    <!-- DEVELOPERS -->
+    <section class="view" id="view-developers">
+      <header class="view__header">
+        <h1>Developers</h1>
+        <p>See what someone maintains, and who else works on the same packages.</p>
+      </header>
+      <div class="searchbar">
+        <input id="dev-search" type="text" placeholder="Search maintainers, e.g. “Petra Zima”…" autocomplete="off" />
+        <div id="dev-suggestions" class="suggestions" hidden></div>
+      </div>
+      <div id="dev-content"></div>
+    </section>
+
+    <!-- ABOUT -->
+    <section class="view" id="view-about">
+      <header class="view__header">
+        <h1>Why a graph database?</h1>
+        <p>The short version, straight from the README.</p>
+      </header>
+      <div class="about-card">
+        <p>A dependency ecosystem is a network, not a table. The questions worth asking about it — <em>"what breaks if this package changes?"</em>, <em>"how many hops separate these two libraries?"</em>, <em>"which packages have a large blast radius but only one maintainer?"</em> — are all variable-depth traversals over relationships.</p>
+        <p>In a relational database, each of those becomes a recursive common-table expression, and a query like "impact analysis to 3 hops, joined against a maintainer count" needs two of them stitched together. In CognoDB, they're single Cypher patterns: <code>(dependent)-[:DEPENDS_ON*1..3]-&gt;(target)</code> reads exactly like the question being asked, and performance stays proportional to the size of the traversal, not the size of the whole table.</p>
+        <p>The graph model also grows naturally: adding "which packages share a license" or "which developers have worked at the same organization" is a new pattern match, not a schema migration and a new set of joins.</p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<template id="tpl-loading">
+  <div class="loading-state">
+    <div class="loading-state__spinner"></div>
+    <span></span>
+  </div>
+</template>
+
+<script src="app.js"></script>
+</body>
+</html>
