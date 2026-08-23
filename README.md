@@ -233,17 +233,10 @@ Open **http://localhost:3000**. Try searching for `torque`, or open **Risk
 Radar** straight away to see `tinyshim` and `flicker-log` — two packages
 almost everything else quietly depends on, each maintained by one person.
 
----
-
-## Screenshots
-
-<!-- screenshot: Explorer view with the radial dependency graph -->
-<!-- screenshot: Risk Radar table -->
-<!-- screenshot: Compare view -->
-<!-- screenshot: Developer profile with collaborators -->
+--->
 
 ## Demo
 
-- Hosted app: `<add your deployed URL here>`
-- Screen recording: `<add your recording link here>`
+- Hosted app: https://codegraph-iceg.onrender.com/
+- Screen recording: [Watch the demo](./demo.mp4)
 EOF
